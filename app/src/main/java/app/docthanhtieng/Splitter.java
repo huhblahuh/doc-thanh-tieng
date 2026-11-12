@@ -20,6 +20,7 @@ final class Splitter {
     private static final int MAX = 260;
     private static final Pattern SENT =
             Pattern.compile("(.+?)([.!?…]+[\"'”’)\\]]*(?=\\s|$)|$)\\s*");
+    private static final Pattern INITIAL = Pattern.compile("(^|[\\s.(\"\u201C])\\p{Lu}\\.\\s*$");
     private static final Pattern HAS_WORD = Pattern.compile("[\\p{L}\\p{N}]");
 
     private Splitter() {}
@@ -39,6 +40,14 @@ final class Splitter {
                 parts.add(m.group());
             }
             if (parts.isEmpty()) parts.add(para);
+            // "Q.P. co kha nang": a lone capital before the dot is an initial, not a sentence end.
+            for (int i = 0; i + 1 < parts.size(); ) {
+                if (INITIAL.matcher(parts.get(i)).find()) {
+                    parts.set(i, parts.get(i) + parts.remove(i + 1));
+                } else {
+                    i++;
+                }
+            }
             boolean any = false;
             for (String part : parts) {
                 for (String piece : shorten(part)) {

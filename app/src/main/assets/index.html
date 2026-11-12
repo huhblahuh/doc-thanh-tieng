@@ -126,7 +126,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     <button class="pill" id="rateBtn" aria-label="Tốc độ">1.0x</button>
     <div class="mid">
       <button class="ic" id="prev" aria-label="Câu trước"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14l-10-7z"/></svg></button>
-      <button class="big" id="play" aria-label="Đọc"><svg id="icPlay" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg id="icPause" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" hidden><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
+      <button class="big" id="play" aria-label="Đọc"><svg id="icPlay" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg id="icPause" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
       <button class="ic" id="next" aria-label="Câu sau"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l10-7z"/></svg></button>
     </div>
     <button class="pill" id="nextItem">Bài kế</button>
@@ -243,9 +243,8 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   function renderPlayer(){
     var shown = (view==='reader' && openId) ? item(openId) : item(S.currentId);
     var isCur = shown && shown.id===S.currentId;
-    $('icPlay').hidden=S.playing&&(view!=='reader'||isCur)?true:false;
     var showPause = S.playing && (view!=='reader' || isCur);
-    $('icPlay').hidden=showPause; $('icPause').hidden=!showPause;
+    $('icPlay').style.display=showPause?'none':''; $('icPause').style.display=showPause?'':'none';
     $('play').setAttribute('aria-label',showPause?'Dừng':'Đọc');
     $('rateBtn').textContent=S.rate.toFixed(1)+'x';
     if(!shown){ $('pTitle').textContent='Chưa có bài'; $('pLeft').textContent=''; $('pFill').style.width='0'; return; }
