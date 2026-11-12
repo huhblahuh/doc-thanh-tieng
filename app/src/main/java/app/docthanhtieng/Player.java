@@ -326,6 +326,19 @@ final class Player {
         }
     }
 
+    void seek(String id, int i) {
+        Store.Item it = store.find(id);
+        if (it == null) return;
+        if (playing) {
+            play(id, i);
+            return;
+        }
+        int at = Math.max(0, Math.min(Math.max(0, it.count - 1), i));
+        setCurrent(id, at);
+        store.setPos(id, at, false);
+        changed();
+    }
+
     void nextItem() {
         Store.Item n = store.after(curId);
         if (n == null) return;

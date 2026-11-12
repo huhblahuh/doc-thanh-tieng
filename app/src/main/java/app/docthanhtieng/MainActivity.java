@@ -168,6 +168,11 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void seek(String id, int index) {
+            runOnUiThread(() -> player.seek(id, index));
+        }
+
+        @JavascriptInterface
         public void toggle() {
             runOnUiThread(() -> player.toggle());
         }

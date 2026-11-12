@@ -52,11 +52,15 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .seg.done{color:var(--muted)}
 .seg.on{background:var(--accent);color:var(--accent-ink)}
 
-.player{flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px}
+.player{position:relative;flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px}
 .player .info{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
 .player .info b{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.player .track{height:4px;background:var(--line);border-radius:2px}
-.player .track i{display:block;height:4px;width:0;background:var(--accent);border-radius:2px}
+.seek{position:relative;height:28px;display:flex;align-items:center;touch-action:none}
+.seek .track{flex:1;height:4px;background:var(--line);border-radius:2px}
+.seek .track i{display:block;height:4px;width:0;background:var(--accent);border-radius:2px}
+.seek .thumb{position:absolute;left:0;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:8px;background:var(--accent)}
+.seek.drag .thumb{width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:11px}
+.jump{position:absolute;right:16px;top:-54px;height:44px;padding:0 16px;border-radius:22px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .player .ctl{display:flex;align-items:center;justify-content:space-between}
 .pill{min-width:64px;height:44px;padding:0 10px;border:1px solid var(--line);border-radius:12px;font-size:14px;font-weight:600;background:var(--surface)}
 .mid{display:flex;align-items:center;gap:12px}
@@ -121,7 +125,8 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
 
 <div class="player">
   <div class="info"><b id="pTitle">Chưa có bài</b><span id="pLeft"></span></div>
-  <div class="track"><i id="pFill"></i></div>
+  <button class="jump" id="jump" hidden>Về chỗ đang đọc</button>
+  <div class="seek" id="seek" role="slider" aria-label="Vị trí trong bài" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="track"><i id="pFill"></i></div><div class="thumb" id="pThumb"></div></div>
   <div class="ctl">
     <button class="pill" id="rateBtn" aria-label="Tốc độ">1.0x</button>
     <div class="mid">
@@ -174,7 +179,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   };
   var S = {items:[],currentId:null,index:0,playing:false,rate:1,voice:'',voices:[],viMissing:false,systemDark:false};
   var P = {theme:'system',accent:'blue',font:'serif',size:19,lh:'1.75',keepOn:false};
-  var view='queue', openId=null, segs=[], spans=[], lastOn=-1, lastKey='';
+  var view='queue', openId=null, segs=[], spans=[], lastOn=-1, lastKey='', followOn=true, drag=null;
 
   function call(name){ if(!N||!N[name]) return null; try{ return N[name].apply(N, Array.prototype.slice.call(arguments,1)); }catch(e){ return null; } }
   function parse(s,d){ try{ return JSON.parse(s); }catch(e){ return d; } }
@@ -247,13 +252,25 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     $('icPlay').style.display=showPause?'none':''; $('icPause').style.display=showPause?'':'none';
     $('play').setAttribute('aria-label',showPause?'Dừng':'Đọc');
     $('rateBtn').textContent=S.rate.toFixed(1)+'x';
-    if(!shown){ $('pTitle').textContent='Chưa có bài'; $('pLeft').textContent=''; $('pFill').style.width='0'; return; }
-    var pos=isCur?S.index:shown.pos, frac=shown.count?pos/shown.count:0;
+    $('jump').hidden = !(view==='reader' && isCur && !followOn);
+    if(!shown){ $('pTitle').textContent='Chưa có bài'; $('pLeft').textContent=''; setBar(0); return; }
+    var pos=isCur?S.index:shown.pos, frac=shown.count>1?pos/(shown.count-1):0;
     $('pTitle').textContent=shown.title;
-    var mins=Math.ceil(shown.len*(1-frac)/(14*S.rate)/60);
-    $('pLeft').textContent='Còn khoảng '+mins+' phút';
-    $('pFill').style.width=Math.round(frac*100)+'%';
+    if(drag===null){
+      var mins=Math.ceil(shown.len*(1-frac)/(14*S.rate)/60);
+      $('pLeft').textContent='Còn khoảng '+mins+' phút';
+      setBar(frac);
+    }
     if(view==='reader'){ $('rTitle').textContent=shown.title; $('rSub').textContent='Câu '+Math.min(shown.count,pos+1)+'/'+shown.count; }
+  }
+
+  function setBar(f){ var pc=(Math.max(0,Math.min(1,f))*100).toFixed(1)+'%'; $('pFill').style.width=pc; $('pThumb').style.left=pc; $('seek').setAttribute('aria-valuenow',Math.round(f*100)); }
+  function shownItem(){ return (view==='reader' && openId) ? item(openId) : item(S.currentId); }
+  function jumpToCurrent(){
+    followOn=true; $('jump').hidden=true;
+    var el=spans[lastOn]; if(!el) return;
+    var box=$('main'), r=el.getBoundingClientRect(), b=box.getBoundingClientRect();
+    box.scrollTop += r.top-b.top-(b.height*0.3);
   }
 
   function markReader(follow){
@@ -281,7 +298,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     });
     rv.appendChild(frag);
     $('queueView').hidden=true; rv.hidden=false; $('topQueue').hidden=true; $('topReader').hidden=false;
-    $('main').scrollTop=0;
+    $('main').scrollTop=0; followOn=true;
     renderPlayer(); markReader(true);
   }
   function closeReader(){
@@ -294,7 +311,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     applyLook();
     if(view==='reader' && !item(openId)) closeReader();
     if(view==='queue') renderQueue();
-    renderPlayer(); markReader(S.playing);
+    renderPlayer(); markReader(S.playing && followOn);
     if(!$('setScrim').hidden) renderSettings();
   }
 
@@ -315,8 +332,26 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   });
   $('readerView').addEventListener('click',function(e){
     var s=e.target.closest('.seg'); if(!s||!openId) return;
+    followOn=true;
     call('play',openId,parseInt(s.getAttribute('data-i'),10));
   });
+  /* scrolling by hand stops the page from chasing the sentence being read */
+  $('main').addEventListener('touchmove',function(){ if(view==='reader' && followOn){ followOn=false; renderPlayer(); } },{passive:true});
+  $('jump').addEventListener('click',jumpToCurrent);
+
+  /* drag the bar to move within the item */
+  (function(){
+    var bar=$('seek');
+    function frac(e){ var r=bar.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)); }
+    function show(f){ var it=shownItem(); if(!it) return; setBar(f); $('pLeft').textContent='Câu '+(Math.round(f*Math.max(0,it.count-1))+1)+'/'+it.count; }
+    bar.addEventListener('pointerdown',function(e){ if(!shownItem()) return; drag=frac(e); bar.classList.add('drag'); try{ bar.setPointerCapture(e.pointerId); }catch(x){} show(drag); });
+    bar.addEventListener('pointermove',function(e){ if(drag===null) return; drag=frac(e); show(drag); });
+    function end(commit){ if(drag===null) return; var f=drag, it=shownItem(); drag=null; bar.classList.remove('drag');
+      if(commit && it && it.count){ followOn=true; lastOn=-1; call('seek',it.id,Math.round(f*(it.count-1))); if(view==='reader') setTimeout(function(){ markReader(true); jumpToCurrent(); },150); }
+      renderPlayer(); }
+    bar.addEventListener('pointerup',function(){ end(true); });
+    bar.addEventListener('pointercancel',function(){ end(false); });
+  })();
   $('back').addEventListener('click',closeReader);
 
   /* player */
