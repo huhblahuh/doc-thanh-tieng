@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Đọc Thành Tiếng</title>
+<style>
+:root{
+  --bg:#f3f5f4;--surface:#ffffff;--ink:#16211f;--muted:#5d6b68;--line:#d5dcda;
+  --accent:#1d5fd0;--accent-ink:#ffffff;
+  --read-font:serif;--read-size:19px;--read-lh:1.75;
+}
+html.dark{--bg:#111716;--surface:#1a2221;--ink:#e6ecea;--muted:#96a5a1;--line:#2e3a38}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:sans-serif;font-size:15px;line-height:1.45;display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;color:var(--ink);background:transparent;border:0;padding:0;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none !important}
+
+.top{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;flex:0 0 auto}
+.top h1{margin:0;font-size:22px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .sub{font-size:12px;color:var(--muted)}
+.top .titles{flex:1;min-width:0}
+.top .titles div:first-child{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sq{width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.sq.aa{font-family:serif;font-size:18px}
+.sq.plain{border:0;background:transparent}
+
+.main{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pad{padding:4px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.primary{height:48px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-size:16px;font-weight:600;width:100%}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;display:flex;flex-direction:column;gap:8px}
+.note button{align-self:flex-start;height:40px;padding:0 14px;border:1px solid var(--line);border-radius:10px;font-weight:600}
+.empty{color:var(--muted);text-align:center;padding:40px 16px}
+
+.item{background:var(--surface);border:1px solid var(--line);border-radius:14px;display:flex;align-items:stretch}
+.item.cur{border:2px solid var(--accent)}
+.item .body{flex:1;min-width:0;padding:12px 4px 12px 14px;text-align:left;display:flex;flex-direction:column;gap:4px}
+.item .t{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .m{font-size:13px;color:var(--muted)}
+.item .tag{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.04em}
+.item .bar{height:4px;background:var(--line);border-radius:2px;margin-top:4px}
+.item .bar i{display:block;height:4px;background:var(--accent);border-radius:2px}
+.item .ops{display:flex;align-items:center;padding-right:4px}
+.item .ops button{width:40px;height:44px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.item .ops button:disabled{opacity:.3}
+
+.reader{padding:18px 20px 28px;font-family:var(--read-font);font-size:var(--read-size);line-height:var(--read-lh)}
+.reader p{margin:0 0 .9em}
+.seg{border-radius:4px;padding:2px 0}
+.seg.done{color:var(--muted)}
+.seg.on{background:var(--accent);color:var(--accent-ink)}
+
+.player{flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px}
+.player .info{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
+.player .info b{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player .track{height:4px;background:var(--line);border-radius:2px}
+.player .track i{display:block;height:4px;width:0;background:var(--accent);border-radius:2px}
+.player .ctl{display:flex;align-items:center;justify-content:space-between}
+.pill{min-width:64px;height:44px;padding:0 10px;border:1px solid var(--line);border-radius:12px;font-size:14px;font-weight:600;background:var(--surface)}
+.mid{display:flex;align-items:center;gap:12px}
+.mid .ic{width:48px;height:48px;display:flex;align-items:center;justify-content:center}
+.mid .big{width:60px;height:60px;border-radius:30px;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center}
+
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;flex-direction:column;justify-content:flex-end;z-index:10}
+.sheet{background:var(--surface);border-radius:18px 18px 0 0;padding:16px 18px 20px;display:flex;flex-direction:column;gap:16px;max-height:88%;overflow-y:auto}
+.sheet h2{margin:0;font-size:18px;font-weight:700;flex:1}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lab{font-size:13px;color:var(--muted);font-weight:500;margin-bottom:8px}
+.rowlab{font-size:15px;font-weight:500}
+.seg3{display:flex;gap:8px}
+.seg3 button{flex:1;height:44px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-weight:600}
+.seg3 button.sel{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.sw{display:flex;gap:12px;flex-wrap:wrap}
+.sw button{width:44px;height:44px;border-radius:22px}
+.sw button.sel{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.step{display:flex;align-items:center;gap:8px}
+.step button{width:48px;height:44px;border:1px solid var(--line);border-radius:10px;font-size:20px}
+.step span{min-width:44px;text-align:center;font-weight:600}
+select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;height:44px;padding:0 10px;max-width:60%}
+.hr{height:1px;background:var(--line)}
+.toggle{width:52px;height:32px;border:1px solid var(--line);border-radius:16px;background:var(--bg);padding:3px;display:flex;align-items:center}
+.toggle i{width:24px;height:24px;border-radius:12px;background:var(--muted);display:block;transition:transform .15s}
+.toggle.on{background:var(--accent);border-color:var(--accent)}
+.toggle.on i{background:var(--accent-ink);transform:translateX(20px)}
+
+.add{position:fixed;inset:0;background:var(--bg);z-index:11;display:flex;flex-direction:column}
+.add .fields{flex:1;display:flex;flex-direction:column;gap:10px;padding:4px 16px 12px;min-height:0}
+.add input,.add textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;width:100%}
+.add textarea{flex:1;min-height:120px;resize:none;font-family:var(--read-font);font-size:16px;line-height:1.6}
+.add .btns{display:flex;gap:10px;padding:0 16px 14px}
+.add .ghost{height:48px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-weight:600;background:var(--surface);white-space:nowrap}
+.add .count{font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.toggle i{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="top" id="topQueue">
+  <h1>Hàng chờ</h1>
+  <button class="sq aa" id="openSet1" aria-label="Chữ và giao diện">Aa</button>
+</div>
+<div class="top" id="topReader" hidden>
+  <button class="sq plain" id="back" aria-label="Về hàng chờ"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4l-7 7 7 7"/></svg></button>
+  <div class="titles"><div id="rTitle"></div><div class="sub" id="rSub"></div></div>
+  <button class="sq aa" id="openSet2" aria-label="Chữ và giao diện">Aa</button>
+</div>
+
+<div class="main" id="main">
+  <div class="pad" id="queueView">
+    <button class="primary" id="addBtn">+ Dán thêm</button>
+    <div class="note" id="voiceNote" hidden>
+      <div>Máy chưa có giọng tiếng Việt.</div>
+      <button id="installVoice">Cài giọng</button>
+    </div>
+    <div id="list" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+  <div class="reader" id="readerView" hidden></div>
+</div>
+
+<div class="player">
+  <div class="info"><b id="pTitle">Chưa có bài</b><span id="pLeft"></span></div>
+  <div class="track"><i id="pFill"></i></div>
+  <div class="ctl">
+    <button class="pill" id="rateBtn" aria-label="Tốc độ">1.0x</button>
+    <div class="mid">
+      <button class="ic" id="prev" aria-label="Câu trước"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14l-10-7z"/></svg></button>
+      <button class="big" id="play" aria-label="Đọc"><svg id="icPlay" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><svg id="icPause" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" hidden><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
+      <button class="ic" id="next" aria-label="Câu sau"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l10-7z"/></svg></button>
+    </div>
+    <button class="pill" id="nextItem">Bài kế</button>
+  </div>
+</div>
+
+<div class="scrim" id="setScrim" hidden>
+  <div class="sheet" id="sheet">
+    <div class="row"><h2>Chữ và giao diện</h2><button class="sq plain" id="closeSet" aria-label="Đóng"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l10 10M14 4L4 14"/></svg></button></div>
+    <div><div class="lab">Giao diện</div><div class="seg3" id="optTheme"><button data-v="light">Sáng</button><button data-v="dark">Tối</button><button data-v="system">Theo máy</button></div></div>
+    <div><div class="lab">Màu chủ đạo</div><div class="sw" id="optAccent"></div></div>
+    <div><div class="lab">Font chữ</div><div class="seg3" id="optFont"><button data-v="serif" style="font-family:serif">Có chân</button><button data-v="sans-serif" style="font-family:sans-serif">Không chân</button><button data-v="monospace" style="font-family:monospace">Đều nét</button></div></div>
+    <div class="row"><div class="rowlab">Cỡ chữ</div><div class="step"><button id="sizeDown" aria-label="Chữ nhỏ hơn" style="font-family:serif;font-size:14px">A</button><span id="sizeVal">19</span><button id="sizeUp" aria-label="Chữ lớn hơn" style="font-family:serif">A</button></div></div>
+    <div class="row"><div class="rowlab">Giãn dòng</div><div class="seg3" id="optLh" style="flex:0 0 auto"><button data-v="1.5" style="width:64px;flex:none">Sát</button><button data-v="1.75" style="width:64px;flex:none">Vừa</button><button data-v="2.05" style="width:64px;flex:none">Thưa</button></div></div>
+    <div class="hr"></div>
+    <div class="row"><div class="rowlab">Tốc độ đọc</div><div class="step"><button id="rateDown" aria-label="Chậm hơn">−</button><span id="rateVal">1.0x</span><button id="rateUp" aria-label="Nhanh hơn">+</button></div></div>
+    <div class="row"><label class="rowlab" for="voiceSel">Giọng</label><select id="voiceSel"></select></div>
+    <div class="row"><div class="rowlab">Giữ màn hình sáng khi đọc</div><button class="toggle" id="keepOn" role="switch" aria-checked="false" aria-label="Giữ màn hình sáng khi đọc"><i></i></button></div>
+  </div>
+</div>
+
+<div class="add" id="addView" hidden>
+  <div class="top"><button class="sq plain" id="addCancel" aria-label="Hủy"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4l-7 7 7 7"/></svg></button><h1 style="font-size:18px">Dán thêm</h1><span class="count" id="addCount">0 ký tự</span></div>
+  <div class="fields">
+    <input id="addTitle" type="text" placeholder="Tên bài (bỏ trống cũng được)" autocomplete="off">
+    <textarea id="addText" placeholder="Dán chữ vào đây" spellcheck="false"></textarea>
+  </div>
+  <div class="btns">
+    <button class="ghost" id="addPaste">Dán</button>
+    <button class="primary" id="addSave">Thêm vào hàng chờ</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var N = window.Native || null;
+  var $ = function(id){ return document.getElementById(id); };
+  var ACC = {
+    blue:['#1d5fd0','#ffffff','#7aa8ff','#071a3a','Xanh dương'],
+    green:['#0b6b5c','#ffffff','#4fc3ad','#06211c','Xanh lá'],
+    purple:['#6a45c9','#ffffff','#b79cff','#1a0f3d','Tím'],
+    orange:['#b4540a','#ffffff','#ffa35c','#2e1500','Cam'],
+    pink:['#c2255c','#ffffff','#ff8fb3','#3a0a1c','Hồng'],
+    gray:['#44504d','#ffffff','#b8c2c0','#141a19','Xám']
+  };
+  var S = {items:[],currentId:null,index:0,playing:false,rate:1,voice:'',voices:[],viMissing:false,systemDark:false};
+  var P = {theme:'system',accent:'blue',font:'serif',size:19,lh:'1.75',keepOn:false};
+  var view='queue', openId=null, segs=[], spans=[], lastOn=-1, lastKey='';
+
+  function call(name){ if(!N||!N[name]) return null; try{ return N[name].apply(N, Array.prototype.slice.call(arguments,1)); }catch(e){ return null; } }
+  function parse(s,d){ try{ return JSON.parse(s); }catch(e){ return d; } }
+  function item(id){ for(var i=0;i<S.items.length;i++) if(S.items[i].id===id) return S.items[i]; return null; }
+  function fmt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+  function savePrefs(){ call('setPrefs', JSON.stringify(P)); }
+
+  function applyLook(){
+    var dark = P.theme==='dark' || (P.theme==='system' && S.systemDark);
+    var a = ACC[P.accent] || ACC.blue, r=document.documentElement;
+    r.classList.toggle('dark', dark);
+    r.style.setProperty('--accent', dark?a[2]:a[0]);
+    r.style.setProperty('--accent-ink', dark?a[3]:a[1]);
+    r.style.setProperty('--read-font', P.font);
+    r.style.setProperty('--read-size', P.size+'px');
+    r.style.setProperty('--read-lh', P.lh);
+    call('setBars', dark?'#111716':'#f3f5f4', !dark);
+    call('setKeepScreenOn', !!(P.keepOn && S.playing));
+  }
+
+  function renderSettings(){
+    function pick(boxId,val){ var b=$(boxId).children; for(var i=0;i<b.length;i++) b[i].classList.toggle('sel', b[i].getAttribute('data-v')===String(val)); }
+    pick('optTheme',P.theme); pick('optFont',P.font); pick('optLh',P.lh); pick('optAccent',P.accent);
+    $('sizeVal').textContent=P.size;
+    $('rateVal').textContent=S.rate.toFixed(1)+'x';
+    $('keepOn').classList.toggle('on',!!P.keepOn); $('keepOn').setAttribute('aria-checked',P.keepOn?'true':'false');
+    var sel=$('voiceSel'), key=JSON.stringify(S.voices)+S.voice;
+    if(sel.getAttribute('data-k')!==key){
+      sel.textContent='';
+      var o=document.createElement('option'); o.value=''; o.textContent='Mặc định'; sel.appendChild(o);
+      S.voices.forEach(function(v,i){ var op=document.createElement('option'); op.value=v.name; op.textContent='Giọng '+(i+1)+(v.net?' (cần mạng)':''); sel.appendChild(op); });
+      sel.value=S.voice||''; sel.setAttribute('data-k',key);
+    }
+  }
+
+  function renderQueue(){
+    var key=JSON.stringify(S.items)+'|'+S.currentId+'|'+S.index+'|'+S.playing;
+    if(key===lastKey) return; lastKey=key;
+    var list=$('list'); list.textContent='';
+    $('voiceNote').hidden=!S.viMissing;
+    if(!S.items.length){ var e=document.createElement('div'); e.className='empty'; e.textContent='Chưa có bài nào. Bấm Dán thêm.'; list.appendChild(e); return; }
+    S.items.forEach(function(it,i){
+      var cur=it.id===S.currentId;
+      var row=document.createElement('div'); row.className='item'+(cur?' cur':'');
+      var body=document.createElement('button'); body.className='body'; body.setAttribute('data-open',it.id);
+      if(cur){ var tag=document.createElement('div'); tag.className='tag'; tag.textContent=S.playing?'ĐANG ĐỌC':'ĐANG DỞ'; body.appendChild(tag); }
+      var t=document.createElement('div'); t.className='t'; t.textContent=it.title; body.appendChild(t);
+      var pos=cur?S.index:it.pos, m=document.createElement('div'); m.className='m';
+      var st = it.done&&!cur ? 'đã nghe' : (pos>0||cur ? 'câu '+Math.min(it.count,pos+1)+'/'+it.count : 'chờ');
+      m.textContent=fmt(it.len)+' ký tự · '+st; body.appendChild(m);
+      if(cur||pos>0){ var bar=document.createElement('div'); bar.className='bar'; var f=document.createElement('i'); f.style.width=(it.count?Math.round(pos/it.count*100):0)+'%'; bar.appendChild(f); body.appendChild(bar); }
+      row.appendChild(body);
+      var ops=document.createElement('div'); ops.className='ops';
+      ops.appendChild(opBtn('Đưa '+it.title+' lên','M4 11l5-5 5 5','up',it.id,i===0));
+      ops.appendChild(opBtn('Đưa '+it.title+' xuống','M4 7l5 5 5-5','down',it.id,i===S.items.length-1));
+      ops.appendChild(opBtn('Xóa '+it.title,'M4 4l10 10M14 4L4 14','del',it.id,false));
+      row.appendChild(ops); list.appendChild(row);
+    });
+  }
+  function opBtn(label,d,op,id,disabled){
+    var b=document.createElement('button'); b.setAttribute('aria-label',label); b.setAttribute('data-op',op); b.setAttribute('data-id',id); b.disabled=disabled;
+    b.innerHTML='<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'+d+'"/></svg>';
+    return b;
+  }
+
+  function renderPlayer(){
+    var shown = (view==='reader' && openId) ? item(openId) : item(S.currentId);
+    var isCur = shown && shown.id===S.currentId;
+    $('icPlay').hidden=S.playing&&(view!=='reader'||isCur)?true:false;
+    var showPause = S.playing && (view!=='reader' || isCur);
+    $('icPlay').hidden=showPause; $('icPause').hidden=!showPause;
+    $('play').setAttribute('aria-label',showPause?'Dừng':'Đọc');
+    $('rateBtn').textContent=S.rate.toFixed(1)+'x';
+    if(!shown){ $('pTitle').textContent='Chưa có bài'; $('pLeft').textContent=''; $('pFill').style.width='0'; return; }
+    var pos=isCur?S.index:shown.pos, frac=shown.count?pos/shown.count:0;
+    $('pTitle').textContent=shown.title;
+    var mins=Math.ceil(shown.len*(1-frac)/(14*S.rate)/60);
+    $('pLeft').textContent='Còn khoảng '+mins+' phút';
+    $('pFill').style.width=Math.round(frac*100)+'%';
+    if(view==='reader'){ $('rTitle').textContent=shown.title; $('rSub').textContent='Câu '+Math.min(shown.count,pos+1)+'/'+shown.count; }
+  }
+
+  function markReader(follow){
+    if(view!=='reader'||!openId) return;
+    var it=item(openId); if(!it) return;
+    var on = openId===S.currentId ? S.index : it.pos;
+    if(on===lastOn) return;
+    var from=Math.min(lastOn<0?0:lastOn,on), to=Math.max(lastOn<0?spans.length-1:lastOn,on);
+    for(var i=from;i<=to&&i<spans.length;i++){ spans[i].className='seg'+(i<on?' done':'')+(i===on?' on':''); }
+    lastOn=on;
+    var el=spans[on]; if(!el||!follow) return;
+    var box=$('main'), r=el.getBoundingClientRect(), b=box.getBoundingClientRect();
+    if(r.top<b.top+10 || r.bottom>b.bottom-10){ box.scrollTop += r.top-b.top-(b.height*0.3); }
+  }
+
+  function openReader(id){
+    var it=item(id); if(!it) return;
+    openId=id; view='reader';
+    segs=parse(call('getSegments',id)||'[]',[]); spans=[]; lastOn=-1;
+    var rv=$('readerView'); rv.textContent='';
+    var frag=document.createDocumentFragment(), p=null, lp=-1;
+    segs.forEach(function(s,i){
+      if(s[1]!==lp){ p=document.createElement('p'); frag.appendChild(p); lp=s[1]; }
+      var sp=document.createElement('span'); sp.className='seg'; sp.textContent=s[0]; sp.setAttribute('data-i',i); p.appendChild(sp); spans.push(sp);
+    });
+    rv.appendChild(frag);
+    $('queueView').hidden=true; rv.hidden=false; $('topQueue').hidden=true; $('topReader').hidden=false;
+    $('main').scrollTop=0;
+    renderPlayer(); markReader(true);
+  }
+  function closeReader(){
+    view='queue'; openId=null; segs=[]; spans=[];
+    $('readerView').hidden=true; $('readerView').textContent=''; $('queueView').hidden=false; $('topQueue').hidden=false; $('topReader').hidden=true;
+    lastKey=''; renderQueue(); renderPlayer();
+  }
+
+  function render(){
+    applyLook();
+    if(view==='reader' && !item(openId)) closeReader();
+    if(view==='queue') renderQueue();
+    renderPlayer(); markReader(S.playing);
+    if(!$('setScrim').hidden) renderSettings();
+  }
+
+  window.onNative=function(s){ if(s){ S=s; render(); } };
+  window.onBack=function(){
+    if(!$('addView').hidden){ $('addView').hidden=true; return true; }
+    if(!$('setScrim').hidden){ $('setScrim').hidden=true; return true; }
+    if(view==='reader'){ closeReader(); return true; }
+    return false;
+  };
+
+  /* queue */
+  $('list').addEventListener('click',function(e){
+    var op=e.target.closest('[data-op]');
+    if(op){ var id=op.getAttribute('data-id'), k=op.getAttribute('data-op');
+      if(k==='del') call('deleteItem',id); else call('moveItem',id,k==='up'?-1:1); return; }
+    var b=e.target.closest('[data-open]'); if(b) openReader(b.getAttribute('data-open'));
+  });
+  $('readerView').addEventListener('click',function(e){
+    var s=e.target.closest('.seg'); if(!s||!openId) return;
+    call('play',openId,parseInt(s.getAttribute('data-i'),10));
+  });
+  $('back').addEventListener('click',closeReader);
+
+  /* player */
+  $('play').addEventListener('click',function(){
+    if(view==='reader' && openId && openId!==S.currentId){ var it=item(openId); call('play',openId,it&&!it.done?it.pos:0); }
+    else call('toggle');
+  });
+  $('prev').addEventListener('click',function(){ call('prevSentence'); });
+  $('next').addEventListener('click',function(){ call('nextSentence'); });
+  $('nextItem').addEventListener('click',function(){ call('nextItem'); });
+
+  /* settings */
+  function openSet(){ $('setScrim').hidden=false; renderSettings(); }
+  $('openSet1').addEventListener('click',openSet); $('openSet2').addEventListener('click',openSet); $('rateBtn').addEventListener('click',openSet);
+  $('closeSet').addEventListener('click',function(){ $('setScrim').hidden=true; });
+  $('setScrim').addEventListener('click',function(e){ if(e.target===$('setScrim')) $('setScrim').hidden=true; });
+  function bindPick(boxId,key){ $(boxId).addEventListener('click',function(e){ var b=e.target.closest('[data-v]'); if(!b) return; P[key]=b.getAttribute('data-v'); savePrefs(); applyLook(); renderSettings(); }); }
+  bindPick('optTheme','theme'); bindPick('optFont','font'); bindPick('optLh','lh'); bindPick('optAccent','accent');
+  Object.keys(ACC).forEach(function(k){ var b=document.createElement('button'); b.setAttribute('data-v',k); b.setAttribute('aria-label',ACC[k][4]); b.style.background=ACC[k][0]; $('optAccent').appendChild(b); });
+  $('sizeDown').addEventListener('click',function(){ P.size=Math.max(14,P.size-1); savePrefs(); applyLook(); renderSettings(); });
+  $('sizeUp').addEventListener('click',function(){ P.size=Math.min(34,P.size+1); savePrefs(); applyLook(); renderSettings(); });
+  function bump(d){ var r=Math.round((S.rate+d)*10)/10; r=Math.max(0.5,Math.min(4,r)); S.rate=r; call('setRate',r); renderSettings(); renderPlayer(); }
+  $('rateDown').addEventListener('click',function(){ bump(-0.1); });
+  $('rateUp').addEventListener('click',function(){ bump(0.1); });
+  $('voiceSel').addEventListener('change',function(){ S.voice=$('voiceSel').value; call('setVoice',S.voice); });
+  $('keepOn').addEventListener('click',function(){ P.keepOn=!P.keepOn; savePrefs(); applyLook(); renderSettings(); });
+  $('installVoice').addEventListener('click',function(){ call('installVoice'); });
+
+  /* add */
+  function countAdd(){ $('addCount').textContent=fmt($('addText').value.length)+' ký tự'; }
+  $('addBtn').addEventListener('click',function(){ $('addTitle').value=''; $('addText').value=''; countAdd(); $('addView').hidden=false; });
+  $('addCancel').addEventListener('click',function(){ $('addView').hidden=true; });
+  $('addText').addEventListener('input',countAdd);
+  $('addPaste').addEventListener('click',function(){ var t=call('readClipboard')||''; if(t){ var a=$('addText'); a.value = a.value ? a.value+'\n\n'+t : t; countAdd(); } });
+  $('addSave').addEventListener('click',function(){
+    var text=$('addText').value; if(!text.trim()) return;
+    call('addItem',$('addTitle').value,text);
+    $('addView').hidden=true; lastKey='';
+    S=parse(call('getState')||'null',S)||S; render();
+  });
+
+  /* init */
+  P=Object.assign(P,parse(call('getPrefs')||'{}',{}));
+  P.size=parseInt(P.size,10)||19;
+  var s0=parse(call('getState')||'null',null); if(s0) S=s0;
+  render();
+})();
+</script>
+</body>
+</html>
