@@ -12,6 +12,7 @@ import android.media.session.PlaybackState;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
+import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.speech.tts.Voice;
@@ -24,6 +25,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Owns the speech engine and walks the queue. Lives as long as the app process. */
 final class Player {
@@ -65,6 +68,14 @@ final class Player {
     private int enq;
     private float rate;
     private String voice;
+    private boolean autoLang;
+    private String activeLang;
+    private String sleepMode = "off";
+    private long sleepUntil;
+    private final Runnable sleepTask;
+    private final List<Pattern> replPat = new ArrayList<>();
+    private final List<String> replTo = new ArrayList<>();
+    private String replJson = "[]";
 
     Listener ui;
     Listener svc;
@@ -75,6 +86,13 @@ final class Player {
         sp = c.getSharedPreferences("player", Context.MODE_PRIVATE);
         rate = sp.getFloat("rate", 1f);
         voice = sp.getString("voice", "");
+        autoLang = sp.getBoolean("autoLang", true);
+        Splitter.clean = sp.getBoolean("clean", true);
+        loadRepl(sp.getString("repl", "[]"));
+        sleepTask = () -> {
+            sleepMode = "off";
+            pause();
+        };
         curId = sp.getString("cur", null);
         Store.Item it = store.find(curId);
         if (it == null) curId = null;
@@ -177,15 +195,12 @@ final class Player {
                 }
             }
             Collections.sort(vi, (x, y) -> x.getName().compareTo(y.getName()));
-            Voice chosen = null;
             for (Voice v : vi) {
                 JSONObject o = new JSONObject();
                 o.put("name", v.getName());
                 o.put("net", v.isNetworkConnectionRequired());
                 a.put(o);
-                if (v.getName().equals(voice)) chosen = v;
             }
-            if (chosen != null) tts.setVoice(chosen);
             if (!vi.isEmpty()) viMissing = false;
         } catch (Exception ignored) {
         }
@@ -222,9 +237,71 @@ final class Player {
         pause();
     }
 
+    private void loadRepl(String json) {
+        replPat.clear();
+        replTo.clear();
+        JSONArray keep = new JSONArray();
+        try {
+            JSONArray a = new JSONArray(json);
+            for (int i = 0; i < a.length(); i++) {
+                JSONArray one = a.getJSONArray(i);
+                String from = one.optString(0, "").trim();
+                String to = one.optString(1, "").trim();
+                if (from.isEmpty()) continue;
+                replPat.add(Pattern.compile("(?<![\\p{L}\\p{N}])" + Pattern.quote(from) + "(?![\\p{L}\\p{N}])",
+                        Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE));
+                replTo.add(Matcher.quoteReplacement(to));
+                JSONArray k = new JSONArray();
+                k.put(from);
+                k.put(to);
+                keep.put(k);
+            }
+        } catch (Exception ignored) {
+        }
+        replJson = keep.toString();
+    }
+
+    private String speakText(String s) {
+        for (int i = 0; i < replPat.size(); i++) s = replPat.get(i).matcher(s).replaceAll(replTo.get(i));
+        return s.trim();
+    }
+
+    private void applyVoice() {
+        if (voice.isEmpty()) return;
+        try {
+            Set<Voice> all = tts.getVoices();
+            if (all == null) return;
+            for (Voice v : all) {
+                if (v.getName().equals(voice)) {
+                    tts.setVoice(v);
+                    return;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void applyLang(Store.Item it) {
+        String lang = "vi";
+        if (it != null && autoLang) {
+            lang = it.lang;
+            if (lang == null || lang.isEmpty()) {
+                lang = Splitter.detect(store.text(it.id));
+                store.setLang(it.id, lang);
+            }
+        }
+        if (lang.equals(activeLang)) return;
+        try {
+            tts.setLanguage("en".equals(lang) ? Locale.US : new Locale("vi", "VN"));
+            if ("vi".equals(lang)) applyVoice();
+        } catch (Exception ignored) {
+        }
+        activeLang = lang;
+    }
+
     private void enqueue(int i, int mode) {
         if (i < 0 || i >= segs.size()) return;
-        tts.speak(segs.get(i).t.trim(), mode, null, gen + ":" + i);
+        tts.speak(speakText(segs.get(i).t), mode, null, gen + ":" + i);
         enq = i;
     }
 
@@ -271,6 +348,7 @@ final class Player {
         am.requestAudioFocus(afr);
         if (!wl.isHeld()) wl.acquire(6 * 60 * 60 * 1000L);
         session.setActive(true);
+        applyLang(store.find(id));
         try {
             app.startForegroundService(new Intent(app, ReaderService.class));
         } catch (Exception ignored) {
@@ -354,6 +432,13 @@ final class Player {
         String was = curId;
         store.setPos(was, 0, true);
         Store.Item n = store.after(was);
+        if ("end".equals(sleepMode)) {
+            sleepMode = "off";
+            if (n != null) setCurrent(n.id, n.done ? 0 : n.pos);
+            else index = 0;
+            pause();
+            return;
+        }
         if (n != null) {
             play(n.id, n.done ? 0 : n.pos);
             return;
@@ -385,21 +470,53 @@ final class Player {
     void setVoice(String name) {
         voice = name == null ? "" : name;
         sp.edit().putString("voice", voice).apply();
-        if (ready) {
-            try {
-                Set<Voice> all = tts.getVoices();
-                if (all != null) {
-                    for (Voice v : all) {
-                        if (v.getName().equals(voice)) {
-                            tts.setVoice(v);
-                            break;
-                        }
-                    }
-                }
-            } catch (Exception ignored) {
-            }
-            if (playing) speakFrom(index);
+        activeLang = null;
+        if (ready && playing) {
+            applyLang(store.find(curId));
+            speakFrom(index);
         }
+        changed();
+    }
+
+    void setSleep(String mode) {
+        main.removeCallbacks(sleepTask);
+        sleepMode = mode == null ? "off" : mode;
+        if (!"off".equals(sleepMode) && !"end".equals(sleepMode)) {
+            try {
+                long ms = Integer.parseInt(sleepMode) * 60000L;
+                sleepUntil = SystemClock.elapsedRealtime() + ms;
+                main.postDelayed(sleepTask, ms);
+            } catch (Exception e) {
+                sleepMode = "off";
+            }
+        }
+        changed();
+    }
+
+    void setAutoLang(boolean on) {
+        autoLang = on;
+        sp.edit().putBoolean("autoLang", on).apply();
+        activeLang = null;
+        if (ready && playing) {
+            applyLang(store.find(curId));
+            speakFrom(index);
+        }
+        changed();
+    }
+
+    void setClean(boolean on) {
+        Splitter.clean = on;
+        sp.edit().putBoolean("clean", on).apply();
+        store.recount();
+        loadedId = null;
+        if (playing && curId != null) play(curId, index);
+        else changed();
+    }
+
+    void setRepl(String json) {
+        loadRepl(json);
+        sp.edit().putString("repl", replJson).apply();
+        if (ready && playing) speakFrom(index);
         changed();
     }
 
@@ -471,6 +588,12 @@ final class Player {
             o.put("viMissing", viMissing);
             o.put("ready", ready);
             o.put("systemDark", systemDark);
+            o.put("autoLang", autoLang);
+            o.put("clean", Splitter.clean);
+            o.put("repl", new JSONArray(replJson));
+            o.put("sleepMode", sleepMode);
+            long left = sleepUntil - SystemClock.elapsedRealtime();
+            o.put("sleepLeft", left > 0 ? (int) Math.ceil(left / 60000.0) : 0);
         } catch (Exception ignored) {
         }
         return o.toString();

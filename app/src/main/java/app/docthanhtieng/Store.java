@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +23,8 @@ final class Store {
         int count;
         int pos;
         boolean done;
+        String lang = "";
+        List<Integer> marks = new ArrayList<>();
     }
 
     private static Store inst;
@@ -57,6 +60,9 @@ final class Store {
                 it.count = o.optInt("count", 0);
                 it.pos = o.optInt("pos", 0);
                 it.done = o.optBoolean("done", false);
+                it.lang = o.optString("lang", "");
+                JSONArray m = o.optJSONArray("marks");
+                if (m != null) for (int k = 0; k < m.length(); k++) it.marks.add(m.getInt(k));
                 if (new File(dir, it.id + ".txt").exists()) items.add(it);
             }
         } catch (Exception ignored) {
@@ -89,6 +95,8 @@ final class Store {
                 o.put("count", it.count);
                 o.put("pos", it.pos);
                 o.put("done", it.done);
+                o.put("lang", it.lang);
+                o.put("marks", new JSONArray(it.marks));
                 a.put(o);
             }
         } catch (Exception ignored) {
@@ -130,6 +138,7 @@ final class Store {
         it.title = t;
         it.len = text.length();
         it.count = Splitter.split(text).size();
+        it.lang = Splitter.detect(text);
         try (FileOutputStream f = new FileOutputStream(new File(dir, it.id + ".txt"))) {
             f.write(text.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
@@ -165,6 +174,29 @@ final class Store {
         if (i == j) return;
         items.remove(i);
         items.add(j, it);
+        save();
+    }
+
+    synchronized void setLang(String id, String lang) {
+        Item it = find(id);
+        if (it == null) return;
+        it.lang = lang;
+        save();
+    }
+
+    synchronized void toggleMark(String id, int i) {
+        Item it = find(id);
+        if (it == null) return;
+        Integer v = i;
+        if (!it.marks.remove(v)) {
+            it.marks.add(v);
+            Collections.sort(it.marks);
+        }
+        save();
+    }
+
+    synchronized void recount() {
+        for (Item it : items) it.count = Splitter.split(text(it.id)).size();
         save();
     }
 

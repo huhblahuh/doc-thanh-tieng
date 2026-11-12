@@ -51,6 +51,16 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .seg{border-radius:4px;padding:2px 0}
 .seg.done{color:var(--muted)}
 .seg.on{background:var(--accent);color:var(--accent-ink)}
+.seg.bm{box-shadow:inset 0 -3px 0 var(--accent)}
+.reader{-webkit-user-select:none;user-select:none}
+.ghost2{height:48px;border:1px solid var(--line);border-radius:12px;padding:0 16px;font-weight:600;font-size:16px;background:var(--surface);white-space:nowrap}
+.marks{display:flex;flex-direction:column;gap:8px}
+.marks button{text-align:left;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;min-height:44px}
+.hint{font-size:13px;color:var(--muted)}
+.repl{flex:1;overflow-y:auto;padding:4px 16px 12px;display:flex;flex-direction:column;gap:10px}
+.repl .r{display:flex;gap:8px;align-items:center}
+.repl .r input{flex:1;min-width:0}
+.repl .r button{width:44px;height:44px;color:var(--muted);flex:0 0 auto;display:flex;align-items:center;justify-content:center}
 
 .player{position:relative;flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px}
 .player .info{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
@@ -108,12 +118,13 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
 <div class="top" id="topReader" hidden>
   <button class="sq plain" id="back" aria-label="Về hàng chờ"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4l-7 7 7 7"/></svg></button>
   <div class="titles"><div id="rTitle"></div><div class="sub" id="rSub"></div></div>
+  <button class="sq" id="openMarks" aria-label="Chỗ đã đánh dấu"><svg aria-hidden="true" width="18" height="20" viewBox="0 0 18 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 2h10v16l-5-4-5 4z"/></svg></button>
   <button class="sq aa" id="openSet2" aria-label="Chữ và giao diện">Aa</button>
 </div>
 
 <div class="main" id="main">
   <div class="pad" id="queueView">
-    <button class="primary" id="addBtn">+ Dán thêm</button>
+    <div style="display:flex;gap:10px"><button class="primary" id="addBtn" style="flex:1;min-width:0">+ Dán thêm</button><button class="ghost2" id="fileBtn">Mở file</button></div>
     <div class="note" id="voiceNote" hidden>
       <div>Máy chưa có giọng tiếng Việt.</div>
       <button id="installVoice">Cài giọng</button>
@@ -150,6 +161,28 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     <div class="row"><div class="rowlab">Tốc độ đọc</div><div class="step"><button id="rateDown" aria-label="Chậm hơn">−</button><span id="rateVal">1.0x</span><button id="rateUp" aria-label="Nhanh hơn">+</button></div></div>
     <div class="row"><label class="rowlab" for="voiceSel">Giọng</label><select id="voiceSel"></select></div>
     <div class="row"><div class="rowlab">Giữ màn hình sáng khi đọc</div><button class="toggle" id="keepOn" role="switch" aria-checked="false" aria-label="Giữ màn hình sáng khi đọc"><i></i></button></div>
+    <div class="hr"></div>
+    <div><div class="lab" id="sleepLab">Hẹn giờ tắt</div><div class="seg3" id="optSleep"><button data-v="off">Tắt</button><button data-v="15">15p</button><button data-v="30">30p</button><button data-v="60">60p</button><button data-v="end">Hết bài</button></div></div>
+    <div class="row"><div class="rowlab">Tự nhận tiếng Anh, tiếng Việt</div><button class="toggle" id="autoLang" role="switch" aria-checked="true" aria-label="Tự nhận tiếng Anh, tiếng Việt"><i></i></button></div>
+    <div class="row"><div class="rowlab">Bỏ ký hiệu # * &gt; khi đọc</div><button class="toggle" id="cleanMd" role="switch" aria-checked="true" aria-label="Bỏ ký hiệu khi đọc"><i></i></button></div>
+    <button class="ghost2" id="openRepl">Sửa cách đọc</button>
+  </div>
+</div>
+
+<div class="scrim" id="marksScrim" hidden>
+  <div class="sheet">
+    <div class="row"><h2>Chỗ đã đánh dấu</h2><button class="sq plain" id="closeMarks" aria-label="Đóng"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l10 10M14 4L4 14"/></svg></button></div>
+    <div class="hint">Giữ ngón tay trên một câu để đánh dấu hoặc bỏ đánh dấu.</div>
+    <div class="marks" id="marksList"></div>
+  </div>
+</div>
+
+<div class="add" id="replView" hidden>
+  <div class="top"><button class="sq plain" id="replCancel" aria-label="Hủy"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4l-7 7 7 7"/></svg></button><h1 style="font-size:18px">Sửa cách đọc</h1></div>
+  <div class="repl" id="replList"></div>
+  <div class="btns">
+    <button class="ghost" id="replAdd">Thêm dòng</button>
+    <button class="primary" id="replSave">Lưu</button>
   </div>
 </div>
 
@@ -177,9 +210,9 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     pink:['#c2255c','#ffffff','#ff8fb3','#3a0a1c','Hồng'],
     gray:['#44504d','#ffffff','#b8c2c0','#141a19','Xám']
   };
-  var S = {items:[],currentId:null,index:0,playing:false,rate:1,voice:'',voices:[],viMissing:false,systemDark:false};
+  var S = {items:[],currentId:null,index:0,playing:false,rate:1,voice:'',voices:[],viMissing:false,systemDark:false,sleepMode:'off',sleepLeft:0,autoLang:true,clean:true,repl:[]};
   var P = {theme:'system',accent:'blue',font:'serif',size:19,lh:'1.75',keepOn:false};
-  var view='queue', openId=null, segs=[], spans=[], lastOn=-1, lastKey='', followOn=true, drag=null;
+  var view='queue', openId=null, segs=[], spans=[], lastOn=-1, lastKey='', followOn=true, drag=null, marks={}, lastMk=null, lpTimer=null, lpFired=false;
 
   function call(name){ if(!N||!N[name]) return null; try{ return N[name].apply(N, Array.prototype.slice.call(arguments,1)); }catch(e){ return null; } }
   function parse(s,d){ try{ return JSON.parse(s); }catch(e){ return d; } }
@@ -206,6 +239,11 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     $('sizeVal').textContent=P.size;
     $('rateVal').textContent=S.rate.toFixed(1)+'x';
     $('keepOn').classList.toggle('on',!!P.keepOn); $('keepOn').setAttribute('aria-checked',P.keepOn?'true':'false');
+    pick('optSleep',S.sleepMode||'off');
+    var num=/^\d+$/.test(S.sleepMode||'');
+    $('sleepLab').textContent='Hẹn giờ tắt'+(num?' · còn '+S.sleepLeft+' phút':'');
+    $('autoLang').classList.toggle('on',!!S.autoLang); $('autoLang').setAttribute('aria-checked',S.autoLang?'true':'false');
+    $('cleanMd').classList.toggle('on',!!S.clean); $('cleanMd').setAttribute('aria-checked',S.clean?'true':'false');
     var sel=$('voiceSel'), key=JSON.stringify(S.voices)+S.voice;
     if(sel.getAttribute('data-k')!==key){
       sel.textContent='';
@@ -229,7 +267,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
       var t=document.createElement('div'); t.className='t'; t.textContent=it.title; body.appendChild(t);
       var pos=cur?S.index:it.pos, m=document.createElement('div'); m.className='m';
       var st = it.done&&!cur ? 'đã nghe' : (pos>0||cur ? 'câu '+Math.min(it.count,pos+1)+'/'+it.count : 'chờ');
-      m.textContent=fmt(it.len)+' ký tự · '+st; body.appendChild(m);
+      m.textContent=fmt(it.len)+' ký tự · '+st+(S.autoLang&&it.lang==='en'?' · EN':''); body.appendChild(m);
       if(cur||pos>0){ var bar=document.createElement('div'); bar.className='bar'; var f=document.createElement('i'); f.style.width=(it.count?Math.round(pos/it.count*100):0)+'%'; bar.appendChild(f); body.appendChild(bar); }
       row.appendChild(body);
       var ops=document.createElement('div'); ops.className='ops';
@@ -258,7 +296,8 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     $('pTitle').textContent=shown.title;
     if(drag===null){
       var mins=Math.ceil(shown.len*(1-frac)/(14*S.rate)/60);
-      $('pLeft').textContent='Còn khoảng '+mins+' phút';
+      var sl = S.sleepMode==='end' ? ' · tắt khi hết bài' : (/^\d+$/.test(S.sleepMode||'') ? ' · tắt sau '+S.sleepLeft+'p' : '');
+      $('pLeft').textContent='Còn '+mins+' phút'+sl;
       setBar(frac);
     }
     if(view==='reader'){ $('rTitle').textContent=shown.title; $('rSub').textContent='Câu '+Math.min(shown.count,pos+1)+'/'+shown.count; }
@@ -277,9 +316,11 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     if(view!=='reader'||!openId) return;
     var it=item(openId); if(!it) return;
     var on = openId===S.currentId ? S.index : it.pos;
+    var mk=(it.marks||[]).join(',');
+    if(mk!==lastMk){ lastMk=mk; marks={}; (it.marks||[]).forEach(function(k){ marks[k]=1; }); lastOn=-1; }
     if(on===lastOn) return;
     var from=Math.min(lastOn<0?0:lastOn,on), to=Math.max(lastOn<0?spans.length-1:lastOn,on);
-    for(var i=from;i<=to&&i<spans.length;i++){ spans[i].className='seg'+(i<on?' done':'')+(i===on?' on':''); }
+    for(var i=from;i<=to&&i<spans.length;i++){ spans[i].className='seg'+(i<on?' done':'')+(i===on?' on':'')+(marks[i]?' bm':''); }
     lastOn=on;
     var el=spans[on]; if(!el||!follow) return;
     var box=$('main'), r=el.getBoundingClientRect(), b=box.getBoundingClientRect();
@@ -289,7 +330,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   function openReader(id){
     var it=item(id); if(!it) return;
     openId=id; view='reader';
-    segs=parse(call('getSegments',id)||'[]',[]); spans=[]; lastOn=-1;
+    segs=parse(call('getSegments',id)||'[]',[]); spans=[]; lastOn=-1; lastMk=null;
     var rv=$('readerView'); rv.textContent='';
     var frag=document.createDocumentFragment(), p=null, lp=-1;
     segs.forEach(function(s,i){
@@ -318,6 +359,8 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   window.onNative=function(s){ if(s){ S=s; render(); } };
   window.onBack=function(){
     if(!$('addView').hidden){ $('addView').hidden=true; return true; }
+    if(!$('replView').hidden){ $('replView').hidden=true; return true; }
+    if(!$('marksScrim').hidden){ $('marksScrim').hidden=true; return true; }
     if(!$('setScrim').hidden){ $('setScrim').hidden=true; return true; }
     if(view==='reader'){ closeReader(); return true; }
     return false;
@@ -332,12 +375,77 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   });
   $('readerView').addEventListener('click',function(e){
     var s=e.target.closest('.seg'); if(!s||!openId) return;
+    if(lpFired){ lpFired=false; return; }
     followOn=true;
     call('play',openId,parseInt(s.getAttribute('data-i'),10));
   });
   /* scrolling by hand stops the page from chasing the sentence being read */
   $('main').addEventListener('touchmove',function(){ if(view==='reader' && followOn){ followOn=false; renderPlayer(); } },{passive:true});
   $('jump').addEventListener('click',jumpToCurrent);
+
+  /* hold a sentence to bookmark it */
+  function lpClear(){ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } }
+  $('readerView').addEventListener('touchstart',function(e){
+    lpClear(); lpFired=false;
+    var s=e.target.closest('.seg'); if(!s||!openId) return;
+    var i=parseInt(s.getAttribute('data-i'),10);
+    lpTimer=setTimeout(function(){ lpTimer=null; lpFired=true; call('toggleMark',openId,i); },550);
+  },{passive:true});
+  $('readerView').addEventListener('touchmove',lpClear,{passive:true});
+  $('readerView').addEventListener('touchend',lpClear);
+  $('readerView').addEventListener('touchcancel',lpClear);
+  $('readerView').addEventListener('contextmenu',function(e){ e.preventDefault(); });
+  $('openMarks').addEventListener('click',function(){
+    var it=item(openId), box=$('marksList'); box.textContent='';
+    ((it&&it.marks)||[]).forEach(function(k){
+      if(!segs[k]) return;
+      var b=document.createElement('button'); b.setAttribute('data-k',k);
+      b.textContent='Câu '+(k+1)+': '+segs[k][0].trim().slice(0,80); box.appendChild(b);
+    });
+    if(!box.children.length){ var d=document.createElement('div'); d.className='hint'; d.textContent='Chưa đánh dấu chỗ nào.'; box.appendChild(d); }
+    $('marksScrim').hidden=false;
+  });
+  $('closeMarks').addEventListener('click',function(){ $('marksScrim').hidden=true; });
+  $('marksScrim').addEventListener('click',function(e){ if(e.target===$('marksScrim')) $('marksScrim').hidden=true; });
+  $('marksList').addEventListener('click',function(e){
+    var b=e.target.closest('[data-k]'); if(!b) return;
+    var el=spans[parseInt(b.getAttribute('data-k'),10)]; $('marksScrim').hidden=true; if(!el) return;
+    followOn=false; renderPlayer();
+    var box=$('main'), r=el.getBoundingClientRect(), bb=box.getBoundingClientRect();
+    box.scrollTop += r.top-bb.top-(bb.height*0.3);
+  });
+
+  /* files, sleep timer, language, cleaning, pronunciation */
+  $('fileBtn').addEventListener('click',function(){ call('pickFiles'); });
+  $('optSleep').addEventListener('click',function(e){ var b=e.target.closest('[data-v]'); if(!b) return; S.sleepMode=b.getAttribute('data-v'); S.sleepLeft=parseInt(S.sleepMode,10)||0; call('setSleep',S.sleepMode); renderSettings(); renderPlayer(); });
+  $('autoLang').addEventListener('click',function(){ S.autoLang=!S.autoLang; call('setAutoLang',S.autoLang); renderSettings(); });
+  $('cleanMd').addEventListener('click',function(){
+    S.clean=!S.clean; call('setClean',S.clean); renderSettings();
+    if(view==='reader'&&openId){ var id=openId; setTimeout(function(){ if(view==='reader'&&openId===id) openReader(id); },250); }
+  });
+  function replRow(a,b){
+    var r=document.createElement('div'); r.className='r';
+    var i1=document.createElement('input'); i1.type='text'; i1.placeholder='Chữ trong bài'; i1.value=a||''; i1.autocomplete='off';
+    var i2=document.createElement('input'); i2.type='text'; i2.placeholder='Đọc thành'; i2.value=b||''; i2.autocomplete='off';
+    var x=document.createElement('button'); x.setAttribute('aria-label','Xóa dòng'); x.setAttribute('data-x','1');
+    x.innerHTML='<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l10 10M14 4L4 14"/></svg>';
+    r.appendChild(i1); r.appendChild(i2); r.appendChild(x); $('replList').appendChild(r);
+  }
+  $('openRepl').addEventListener('click',function(){
+    $('replList').textContent='';
+    var h=document.createElement('div'); h.className='hint'; h.textContent='Ví dụ: chữ trong bài là Q.P., đọc thành "quy pi". Chỉ đổi lúc đọc, chữ trên màn hình giữ nguyên.'; $('replList').appendChild(h);
+    (S.repl||[]).forEach(function(p){ replRow(p[0],p[1]); });
+    replRow('','');
+    $('setScrim').hidden=true; $('replView').hidden=false;
+  });
+  $('replAdd').addEventListener('click',function(){ replRow('',''); });
+  $('replList').addEventListener('click',function(e){ var x=e.target.closest('[data-x]'); if(x) x.parentNode.remove(); });
+  $('replCancel').addEventListener('click',function(){ $('replView').hidden=true; });
+  $('replSave').addEventListener('click',function(){
+    var out=[], rows=$('replList').querySelectorAll('.r');
+    for(var i=0;i<rows.length;i++){ var ins=rows[i].querySelectorAll('input'); var a=ins[0].value.trim(); if(a) out.push([a,ins[1].value.trim()]); }
+    S.repl=out; call('setRepl',JSON.stringify(out)); $('replView').hidden=true;
+  });
 
   /* drag the bar to move within the item */
   (function(){

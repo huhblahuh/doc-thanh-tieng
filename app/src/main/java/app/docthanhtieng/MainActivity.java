@@ -9,7 +9,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.graphics.Color;
+import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.os.Build;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
@@ -22,6 +25,11 @@ import android.webkit.WebViewClient;
 
 import org.json.JSONArray;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends Activity {
@@ -29,6 +37,7 @@ public class MainActivity extends Activity {
     private Player player;
     private Store store;
     private SharedPreferences sp;
+    private static final int REQ_FILES = 7;
     private boolean pageReady;
     private final Player.Listener listener = this::push;
 
@@ -78,6 +87,82 @@ public class MainActivity extends Activity {
         if (text == null) return;
         store.add(subject, text.toString());
         push();
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req != REQ_FILES || res != RESULT_OK || data == null) return;
+        List<Uri> uris = new ArrayList<>();
+        if (data.getClipData() != null) {
+            for (int i = 0; i < data.getClipData().getItemCount(); i++) uris.add(data.getClipData().getItemAt(i).getUri());
+        } else if (data.getData() != null) {
+            uris.add(data.getData());
+        }
+        List<String[]> files = new ArrayList<>();
+        for (Uri u : uris) {
+            String text = readText(u);
+            if (text.trim().isEmpty()) continue;
+            String name = fileName(u).replaceFirst("(?i)\\.(md|markdown|txt)$", "");
+            files.add(new String[]{name, text});
+        }
+        Collections.sort(files, (x, y) -> natural(x[0], y[0]));
+        for (String[] f : files) store.add(f[0], f[1]);
+        push();
+    }
+
+    private String fileName(Uri u) {
+        try (Cursor c = getContentResolver().query(u, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (c != null && c.moveToFirst()) {
+                String n = c.getString(0);
+                if (n != null && !n.isEmpty()) return n;
+            }
+        } catch (Exception ignored) {
+        }
+        String last = u.getLastPathSegment();
+        return last == null ? "" : last;
+    }
+
+    private String readText(Uri u) {
+        try (InputStream in = getContentResolver().openInputStream(u)) {
+            if (in == null) return "";
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buf = new byte[16384];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                out.write(buf, 0, n);
+                if (out.size() > 8 * 1024 * 1024) break;
+            }
+            String s = new String(out.toByteArray(), StandardCharsets.UTF_8);
+            if (s.startsWith("\uFEFF")) s = s.substring(1);
+            return s;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** Orders "Chapter 2" before "Chapter 10". */
+    static int natural(String a, String b) {
+        int i = 0, j = 0;
+        while (i < a.length() && j < b.length()) {
+            char x = a.charAt(i), y = b.charAt(j);
+            if (Character.isDigit(x) && Character.isDigit(y)) {
+                int si = i, sj = j;
+                while (i < a.length() && Character.isDigit(a.charAt(i))) i++;
+                while (j < b.length() && Character.isDigit(b.charAt(j))) j++;
+                String da = a.substring(si, i).replaceFirst("^0+(?=\\d)", "");
+                String db = b.substring(sj, j).replaceFirst("^0+(?=\\d)", "");
+                if (da.length() != db.length()) return da.length() - db.length();
+                int c = da.compareTo(db);
+                if (c != 0) return c;
+            } else {
+                int c = Character.compare(Character.toLowerCase(x), Character.toLowerCase(y));
+                if (c != 0) return c;
+                i++;
+                j++;
+            }
+        }
+        return (a.length() - i) - (b.length() - j);
     }
 
     @Override
@@ -170,6 +255,47 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void seek(String id, int index) {
             runOnUiThread(() -> player.seek(id, index));
+        }
+
+        @JavascriptInterface
+        public void pickFiles() {
+            runOnUiThread(() -> {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                i.addCategory(Intent.CATEGORY_OPENABLE);
+                i.setType("*/*");
+                i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/*", "application/octet-stream"});
+                i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                try {
+                    startActivityForResult(i, REQ_FILES);
+                } catch (Exception ignored) {
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void setSleep(String mode) {
+            runOnUiThread(() -> player.setSleep(mode));
+        }
+
+        @JavascriptInterface
+        public void setAutoLang(boolean on) {
+            runOnUiThread(() -> player.setAutoLang(on));
+        }
+
+        @JavascriptInterface
+        public void setClean(boolean on) {
+            runOnUiThread(() -> player.setClean(on));
+        }
+
+        @JavascriptInterface
+        public void setRepl(String json) {
+            runOnUiThread(() -> player.setRepl(json));
+        }
+
+        @JavascriptInterface
+        public void toggleMark(String id, int index) {
+            store.toggleMark(id, index);
+            push();
         }
 
         @JavascriptInterface

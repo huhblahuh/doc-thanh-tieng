@@ -23,7 +23,38 @@ final class Splitter {
     private static final Pattern INITIAL = Pattern.compile("(^|[\\s.(\"\u201C])\\p{Lu}\\.\\s*$");
     private static final Pattern HAS_WORD = Pattern.compile("[\\p{L}\\p{N}]");
 
+    /** Drop markdown marks (# * > etc.) before reading. */
+    static volatile boolean clean = true;
+
     private Splitter() {}
+
+    static String cleanLine(String s) {
+        s = s.replaceAll("^#{1,6}\\s+", "");
+        s = s.replaceAll("^>+\\s*", "");
+        s = s.replaceAll("^[-*+]\\s+", "");
+        s = s.replaceAll("!?\\[([^\\]]*)\\]\\([^)]*\\)", "$1");
+        s = s.replaceAll("\\*+", "");
+        s = s.replaceAll("`+", "");
+        s = s.replaceAll("~~", "");
+        s = s.replaceAll("(?<![\\p{L}\\p{N}])_+|_+(?![\\p{L}\\p{N}])", "");
+        if (s.matches("[\\s\\-=_|:]*")) return "";
+        return s.trim();
+    }
+
+    /** "vi" when the text carries Vietnamese letters, otherwise "en". */
+    static String detect(String text) {
+        if (text == null) return "vi";
+        int n = Math.min(text.length(), 4000), letters = 0, vi = 0;
+        for (int i = 0; i < n; i++) {
+            char c = text.charAt(i);
+            if (!Character.isLetter(c)) continue;
+            letters++;
+            char l = Character.toLowerCase(c);
+            if (l == '\u0111' || l == '\u0103' || l == '\u01A1' || l == '\u01B0' || (c >= 0x1EA0 && c <= 0x1EF9)) vi++;
+        }
+        if (letters == 0) return "vi";
+        return vi * 100 >= letters * 2 ? "vi" : "en";
+    }
 
     static List<Seg> split(String text) {
         List<Seg> out = new ArrayList<>();
@@ -32,6 +63,7 @@ final class Splitter {
         int p = 0;
         for (String raw : paras) {
             String para = raw.trim();
+            if (clean) para = cleanLine(para);
             if (para.isEmpty()) continue;
             List<String> parts = new ArrayList<>();
             Matcher m = SENT.matcher(para);
