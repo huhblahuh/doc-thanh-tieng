@@ -24,6 +24,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -85,7 +86,7 @@ public class MainActivity extends Activity {
         String subject = intent.getStringExtra(Intent.EXTRA_SUBJECT);
         intent.setAction(Intent.ACTION_MAIN);
         if (text == null) return;
-        store.add(subject, text.toString());
+        player.addAndMaybePlay(subject, text.toString());
         push();
     }
 
@@ -107,7 +108,13 @@ public class MainActivity extends Activity {
             files.add(new String[]{name, text});
         }
         Collections.sort(files, (x, y) -> natural(x[0], y[0]));
-        for (String[] f : files) store.add(f[0], f[1]);
+        String first = null;
+        for (String[] f : files) {
+            if (store.same(f[1]) != null) continue;
+            String id = store.add(f[0], f[1]);
+            if (first == null) first = id;
+        }
+        if (first != null && !player.isPlaying()) player.play(first, 0);
         push();
     }
 
@@ -166,6 +173,24 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && pageReady) web.evaluateJavascript("window.onFocusBack&&window.onFocusBack()", null);
+    }
+
+    private String clipText() {
+        try {
+            ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData d = cm.getPrimaryClip();
+            if (d == null || d.getItemCount() == 0) return "";
+            CharSequence t = d.getItemAt(0).coerceToText(MainActivity.this);
+            return t == null ? "" : t.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    @Override
     protected void onStart() {
         super.onStart();
         player.ui = listener;
@@ -207,6 +232,18 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** Runs a step on the main thread and waits for its answer. */
+    private String onMain(java.util.concurrent.Callable<String> c) {
+        java.util.concurrent.FutureTask<String> f = new java.util.concurrent.FutureTask<>(c);
+        runOnUiThread(f);
+        try {
+            String s = f.get(5, java.util.concurrent.TimeUnit.SECONDS);
+            return s == null ? "" : s;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     public final class Bridge {
         @JavascriptInterface
         public String getState() {
@@ -228,9 +265,44 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String addItem(String title, String text) {
-            String id = store.add(title, text);
-            push();
-            return id == null ? "" : id;
+            return onMain(() -> player.addAndMaybePlay(title, text));
+        }
+
+        /** One tap: whatever was copied goes into the queue. */
+        @JavascriptInterface
+        public String pasteClip() {
+            String t = onMain(MainActivity.this::clipText);
+            return onMain(() -> player.addAndMaybePlay(null, t));
+        }
+
+        /** Looks at what was copied without adding it, for the "you just copied" bar. */
+        @JavascriptInterface
+        public String peekClip() {
+            String t = onMain(MainActivity.this::clipText).trim();
+            JSONObject o = new JSONObject();
+            try {
+                o.put("len", t.length());
+                o.put("head", Store.makeTitle(t));
+                o.put("key", t.length() + ":" + t.hashCode());
+                o.put("dup", !t.isEmpty() && store.same(t) != null);
+            } catch (Exception ignored) {
+            }
+            return o.toString();
+        }
+
+        @JavascriptInterface
+        public String undo() {
+            return onMain(() -> player.undoRedo(false));
+        }
+
+        @JavascriptInterface
+        public String redo() {
+            return onMain(() -> player.undoRedo(true));
+        }
+
+        @JavascriptInterface
+        public void jump(String id, int index, boolean start) {
+            runOnUiThread(() -> player.jump(id, index, start));
         }
 
         @JavascriptInterface

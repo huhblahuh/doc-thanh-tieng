@@ -417,6 +417,81 @@ final class Player {
         changed();
     }
 
+    String currentId() {
+        return curId;
+    }
+
+    int currentIndex() {
+        return index;
+    }
+
+    /** A jump the user chose (tapping a sentence or dragging the bar). It can be taken back. */
+    void jump(String id, int i, boolean start) {
+        Store.Item it = store.find(id);
+        if (it == null) return;
+        int at = Math.max(0, Math.min(Math.max(0, it.count - 1), i));
+        if (curId != null && store.find(curId) != null) store.recordJump(curId, index, id, at);
+        if (start || playing) play(id, at);
+        else seek(id, at);
+    }
+
+    private void goTo(String id, int i) {
+        Store.Item it = store.find(id);
+        if (it == null) return;
+        if (playing) play(id, i);
+        else seek(id, i);
+    }
+
+    /** Takes back or redoes one step. Returns what was changed, for the message on screen. */
+    String undoRedo(boolean redo) {
+        Store.Step s = redo ? store.redo() : store.undo();
+        if (s == null) return "";
+        if ("jump".equals(s.kind)) {
+            if (redo) goTo(s.toId, s.to);
+            else goTo(s.fromId, s.from);
+        } else if (curId != null && store.find(curId) == null) {
+            deleted(curId);
+        }
+        changed();
+        return s.label;
+    }
+
+    /** Adds text to the end of the queue. Starts reading it when nothing is being read. */
+    String addAndMaybePlay(String title, String text) {
+        JSONObject r = new JSONObject();
+        try {
+            String t = text == null ? "" : text.trim();
+            if (t.isEmpty()) {
+                r.put("status", "empty");
+                return r.toString();
+            }
+            Store.Item dup = store.same(t);
+            if (dup != null) {
+                r.put("status", "dup");
+                r.put("id", dup.id);
+                r.put("title", dup.title);
+                return r.toString();
+            }
+            String id = store.add(title, t);
+            if (id == null) {
+                r.put("status", "empty");
+                return r.toString();
+            }
+            Store.Item it = store.find(id);
+            boolean start = !playing;
+            r.put("status", "added");
+            r.put("id", id);
+            r.put("title", it == null ? "" : it.title);
+            r.put("started", start);
+            Store.Item cur = store.find(curId);
+            r.put("afterCurrent", !start && cur != null && store.after(curId) == it);
+            if (start) play(id, 0);
+            else changed();
+        } catch (Exception ignored) {
+        }
+        return r.toString();
+    }
+
     void nextItem() {
         Store.Item n = store.after(curId);
         if (n == null) return;
@@ -580,6 +655,9 @@ final class Player {
         try {
             o.put("items", store.toJson());
             o.put("currentId", curId == null ? JSONObject.NULL : curId);
+            o.put("canUndo", store.canUndo());
+            o.put("canRedo", store.canRedo());
+            o.put("ended", ended);
             o.put("index", index);
             o.put("playing", playing);
             o.put("rate", rate);

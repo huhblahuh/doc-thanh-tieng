@@ -57,6 +57,29 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .marks{display:flex;flex-direction:column;gap:8px}
 .marks button{text-align:left;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;min-height:44px}
 .hint{font-size:13px;color:var(--muted)}
+.ur{width:40px;height:44px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;color:var(--ink)}
+.ur:disabled{color:var(--line)}
+.pastebtn{height:44px;padding:0 12px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:15px;display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.qbtns{display:flex;gap:10px}
+.qbtns .primary{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px}
+.clipbar{margin:0 16px 10px;background:var(--surface);border:1px solid var(--accent);border-radius:14px;padding:8px 6px 8px 14px;display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.clipbar .tx{flex:1;min-width:0}
+.clipbar .tx div:first-child{font-size:14px;font-weight:600}
+.clipbar .tx div:last-child{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clipbar .add1{height:44px;padding:0 16px;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+.clipbar .x{width:40px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.toast{position:fixed;left:12px;right:12px;z-index:9;background:#16211f;color:#fff;border-radius:14px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+html.dark .toast{background:#e6ecea;color:#111716}
+.toast .tx{flex:1;min-width:0;padding:6px 0}
+.toast .t1{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast .t2{font-size:12px;opacity:.75}
+.toast button{height:44px;padding:0 14px;border-radius:10px;color:#8db4ff;font-weight:700;font-size:14px}
+html.dark .toast button{color:#1d5fd0}
+.endcard{margin:8px 0 0;border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;background:var(--bg);font-family:sans-serif;font-size:15px;line-height:1.45}
+.endcard h3{margin:0;font-size:18px}
+.endcard .row2{display:flex;gap:10px}
+.endcard .row2 button{flex:1;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-weight:600;font-size:14px}
+.endcard .big2{height:56px;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px}
 .repl{flex:1;overflow-y:auto;padding:4px 16px 12px;display:flex;flex-direction:column;gap:10px}
 .repl .r{display:flex;gap:8px;align-items:center}
 .repl .r input{flex:1;min-width:0}
@@ -114,18 +137,27 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
 
 <div class="top" id="topQueue">
   <h1>Hàng chờ</h1>
+  <button class="sq" data-undo aria-label="Hoàn tác"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4L3 8l4 4"/><path d="M3 8h9a5 5 0 0 1 0 10H8"/></svg></button>
+  <button class="sq" data-redo aria-label="Làm lại"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4l4 4-4 4"/><path d="M17 8H8a5 5 0 0 0 0 10h4"/></svg></button>
   <button class="sq aa" id="openSet1" aria-label="Chữ và giao diện">Aa</button>
 </div>
 <div class="top" id="topReader" hidden>
   <button class="sq plain" id="back" aria-label="Về hàng chờ"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4l-7 7 7 7"/></svg></button>
   <div class="titles"><div id="rTitle"></div><div class="sub" id="rSub"></div></div>
-  <button class="sq" id="openMarks" aria-label="Chỗ đã đánh dấu"><svg aria-hidden="true" width="18" height="20" viewBox="0 0 18 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 2h10v16l-5-4-5 4z"/></svg></button>
+  <button class="ur" data-undo aria-label="Hoàn tác"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4L3 8l4 4"/><path d="M3 8h9a5 5 0 0 1 0 10H8"/></svg></button>
+  <button class="ur" data-redo aria-label="Làm lại"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4l4 4-4 4"/><path d="M17 8H8a5 5 0 0 0 0 10h4"/></svg></button>
+  <button class="pastebtn" data-paste><svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3" width="11" height="13" rx="2"/><path d="M6.5 2h5v3h-5z"/></svg>Dán</button>
   <button class="sq aa" id="openSet2" aria-label="Chữ và giao diện">Aa</button>
+</div>
+<div class="clipbar" id="clipBar" hidden>
+  <div class="tx"><div>Bạn vừa copy chữ mới</div><div id="clipInfo"></div></div>
+  <button class="add1" id="clipAdd">Thêm</button>
+  <button class="x" id="clipX" aria-label="Bỏ qua"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l10 10M14 4L4 14"/></svg></button>
 </div>
 
 <div class="main" id="main">
   <div class="pad" id="queueView">
-    <div style="display:flex;gap:10px"><button class="primary" id="addBtn" style="flex:1;min-width:0">+ Dán thêm</button><button class="ghost2" id="fileBtn">Mở file</button></div>
+    <div class="qbtns"><button class="primary" data-paste><svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3" width="11" height="13" rx="2"/><path d="M6.5 2h5v3h-5z"/></svg>Dán</button><button class="ghost2" data-file>Mở file</button><button class="ghost2" id="addBtn">Gõ</button></div>
     <div class="note" id="voiceNote" hidden>
       <div>Máy chưa có giọng tiếng Việt.</div>
       <button id="installVoice">Cài giọng</button>
@@ -153,6 +185,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
 <div class="scrim" id="setScrim" hidden>
   <div class="sheet" id="sheet">
     <div class="row"><h2>Chữ và giao diện</h2><button class="sq plain" id="closeSet" aria-label="Đóng"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l10 10M14 4L4 14"/></svg></button></div>
+    <button class="ghost2" id="openMarks" hidden>Chỗ đã đánh dấu</button>
     <div><div class="lab">Giao diện</div><div class="seg3" id="optTheme"><button data-v="light">Sáng</button><button data-v="dark">Tối</button><button data-v="system">Theo máy</button></div></div>
     <div><div class="lab">Màu chủ đạo</div><div class="sw" id="optAccent"></div></div>
     <div><div class="lab">Font chữ</div><div class="seg3" id="optFont"><button data-v="serif" style="font-family:serif">Có chân</button><button data-v="sans-serif" style="font-family:sans-serif">Không chân</button><button data-v="monospace" style="font-family:monospace">Đều nét</button></div></div>
@@ -167,6 +200,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     <div><div class="lab" id="sleepLab">Hẹn giờ tắt</div><div class="seg3" id="optSleep"><button data-v="off">Tắt</button><button data-v="15">15p</button><button data-v="30">30p</button><button data-v="60">60p</button><button data-v="end">Hết bài</button></div></div>
     <div class="row"><div class="rowlab">Tự nhận tiếng Anh, tiếng Việt</div><button class="toggle" id="autoLang" role="switch" aria-checked="true" aria-label="Tự nhận tiếng Anh, tiếng Việt"><i></i></button></div>
     <div class="row"><div class="rowlab">Bỏ ký hiệu # * &gt; khi đọc</div><button class="toggle" id="cleanMd" role="switch" aria-checked="true" aria-label="Bỏ ký hiệu khi đọc"><i></i></button></div>
+    <div class="row"><div class="rowlab">Gợi ý dán chữ vừa copy</div><button class="toggle" id="clipOpt" role="switch" aria-checked="true" aria-label="Gợi ý dán chữ vừa copy"><i></i></button></div>
     <button class="ghost2" id="openRepl">Sửa cách đọc</button>
   </div>
 </div>
@@ -188,6 +222,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   </div>
 </div>
 
+<div class="toast" id="toast" hidden><div class="tx"><div class="t1" id="toastT1"></div><div class="t2" id="toastT2"></div></div><button id="toastBtn"></button></div>
 <div class="add" id="addView" hidden>
   <div class="top"><button class="sq plain" id="addCancel" aria-label="Hủy"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4l-7 7 7 7"/></svg></button><h1 style="font-size:18px">Dán thêm</h1><span class="count" id="addCount">0 ký tự</span></div>
   <div class="fields">
@@ -196,7 +231,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   </div>
   <div class="btns">
     <button class="ghost" id="addPaste">Dán</button>
-    <button class="primary" id="addSave">Thêm vào hàng chờ</button>
+    <button class="primary" id="addSave">Thêm</button>
   </div>
 </div>
 
@@ -213,7 +248,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     gray:['#44504d','#ffffff','#b8c2c0','#141a19','Xám']
   };
   var S = {items:[],currentId:null,index:0,playing:false,rate:1,voice:'',voices:[],viMissing:false,systemDark:false,sleepMode:'off',sleepLeft:0,autoLang:true,clean:true,repl:[]};
-  var P = {theme:'system',accent:'blue',font:'serif',size:19,lh:'1.75',keepOn:false,follow:true};
+  var P = {theme:'system',accent:'blue',font:'serif',size:19,lh:'1.75',keepOn:false,follow:true,clipBar:true,clipSeen:''};
   var view='queue', openId=null, segs=[], spans=[], lastOn=-1, lastKey='', followOn=true, drag=null, marks={}, lastMk=null, lpTimer=null, lpFired=false;
 
   function call(name){ if(!N||!N[name]) return null; try{ return N[name].apply(N, Array.prototype.slice.call(arguments,1)); }catch(e){ return null; } }
@@ -241,6 +276,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     $('sizeVal').textContent=P.size;
     $('rateVal').textContent=S.rate.toFixed(1)+'x';
     $('keepOn').classList.toggle('on',!!P.keepOn); $('keepOn').setAttribute('aria-checked',P.keepOn?'true':'false');
+    $('clipOpt').classList.toggle('on',P.clipBar!==false); $('clipOpt').setAttribute('aria-checked',P.clipBar!==false?'true':'false');
     $('followOpt').classList.toggle('on',!!followOn); $('followOpt').setAttribute('aria-checked',followOn?'true':'false');
     pick('optSleep',S.sleepMode||'off');
     var num=/^\d+$/.test(S.sleepMode||'');
@@ -336,6 +372,52 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     if(r.top<b.top+10 || r.bottom>b.bottom-10){ box.scrollTop += r.top-b.top-(b.height*0.3); }
   }
 
+  /* small message above the player, with one action */
+  var toastTimer=null, toastAct=null;
+  function toast(t1,t2,btn,act){
+    var el=$('toast'); $('toastT1').textContent=t1; $('toastT2').textContent=t2||''; $('toastT2').hidden=!t2;
+    $('toastBtn').textContent=btn||''; $('toastBtn').hidden=!btn; toastAct=act||null;
+    el.style.bottom=(document.querySelector('.player').offsetHeight+12)+'px';
+    el.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(function(){ el.hidden=true; },4500);
+  }
+  function refresh(){ var s1=parse(call('getState')||'null',null); if(s1) S=s1; lastKey=''; render(); }
+
+  function afterAdd(r){
+    if(!r||!r.status||r.status==='empty'){ toast('Chưa copy chữ nào','Copy chữ ở chỗ khác rồi bấm Dán.'); return; }
+    if(r.status==='dup'){ toast('Bài này đã có trong hàng chờ','“'+r.title+'”','Mở',function(){ openReader(r.id); }); return; }
+    refresh();
+    if(r.started){ backTo = view==='reader' ? openId : null; if(view!=='reader'||openId!==r.id) openReader(r.id); toast('Đang đọc “'+r.title+'”','','Hoàn tác',doUndo); }
+    else toast('Đã thêm “'+r.title+'”', r.afterCurrent?'Đọc sau bài này':'Vô cuối hàng chờ','Hoàn tác',doUndo);
+  }
+  function doPaste(){ $('clipBar').hidden=true; var r=parse(call('pasteClip')||'{}',{}); if(r.status==='added'){ var c=parse(call('peekClip')||'{}',{}); if(c.key){ P.clipSeen=c.key; savePrefs(); } } afterAdd(r); }
+  var backTo=null;
+  function doUndo(){ var wasReader=view==='reader'; var l=call('undo')||''; refresh(); if(wasReader && view!=='reader' && backTo && item(backTo)) openReader(backTo); backTo=null; if(l){ toast('Đã hoàn tác: '+l,'','Làm lại',doRedo); if(l==='Tua') setTimeout(jumpToCurrent,120); } }
+  function doRedo(){ var l=call('redo')||''; refresh(); if(l){ toast('Đã làm lại: '+l,'','Hoàn tác',doUndo); if(l==='Tua') setTimeout(jumpToCurrent,120); } }
+
+  function checkClip(){
+    if(P.clipBar===false){ $('clipBar').hidden=true; return; }
+    var c=parse(call('peekClip')||'{}',{});
+    if(c.len>=80 && !c.dup && c.key!==P.clipSeen){ $('clipInfo').textContent='“'+c.head+'” · '+fmt(c.len)+' ký tự'; $('clipBar').setAttribute('data-k',c.key); $('clipBar').hidden=false; }
+    else $('clipBar').hidden=true;
+  }
+  window.onFocusBack=checkClip;
+
+  /* end of the queue: offer to paste the next chapter right there */
+  function renderEnd(){
+    var rv=$('readerView'), old=$('endCard');
+    var it=view==='reader'?item(openId):null;
+    var last=it && S.items.length && S.items[S.items.length-1].id===it.id;
+    var show=!!(it && last && !S.playing && openId===S.currentId && (S.ended||it.done));
+    if(!show){ if(old) old.remove(); return; }
+    if(old) return;
+    var c=document.createElement('div'); c.className='endcard'; c.id='endCard';
+    c.innerHTML='<div><h3>Hết hàng chờ</h3><div class="hint">Copy chương tiếp rồi bấm nút dưới đây.</div></div>'+
+      '<button class="big2" data-paste>'+document.querySelector('.qbtns [data-paste] svg').outerHTML+'Dán và đọc luôn</button>'+
+      '<div class="row2"><button data-file>Mở file</button><button id="readAgain">Đọc lại bài này</button></div>';
+    rv.appendChild(c);
+    if(followOn){ var box=$('main'); box.scrollTop=box.scrollHeight; }
+  }
+
   function openReader(id){
     var it=item(id); if(!it) return;
     openId=id; view='reader';
@@ -347,12 +429,13 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
       var sp=document.createElement('span'); sp.className='seg'; sp.textContent=s[0]; sp.setAttribute('data-i',i); p.appendChild(sp); spans.push(sp);
     });
     rv.appendChild(frag);
+    $('openMarks').hidden=false;
     $('queueView').hidden=true; rv.hidden=false; $('topQueue').hidden=true; $('topReader').hidden=false;
     $('main').scrollTop=0;
-    renderPlayer(); markReader(true);
+    renderPlayer(); markReader(true); renderEnd();
   }
   function closeReader(){
-    view='queue'; openId=null; segs=[]; spans=[];
+    view='queue'; openId=null; segs=[]; spans=[]; $('openMarks').hidden=true;
     $('readerView').hidden=true; $('readerView').textContent=''; $('queueView').hidden=false; $('topQueue').hidden=false; $('topReader').hidden=true;
     lastKey=''; renderQueue(); renderPlayer();
   }
@@ -361,9 +444,26 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     applyLook();
     if(view==='reader' && !item(openId)) closeReader();
     if(view==='queue') renderQueue();
-    renderPlayer(); markReader(S.playing && followOn);
+    renderPlayer(); markReader(S.playing && followOn); renderEnd();
+    var u=document.querySelectorAll('[data-undo]'), r=document.querySelectorAll('[data-redo]');
+    for(var i=0;i<u.length;i++) u[i].disabled=!S.canUndo;
+    for(var k=0;k<r.length;k++) r[k].disabled=!S.canRedo;
     if(!$('setScrim').hidden) renderSettings();
   }
+
+  /* buttons that appear in more than one place */
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-paste],[data-file],[data-undo],[data-redo],#readAgain'); if(!b||b.disabled) return;
+    if(b.hasAttribute('data-paste')) doPaste();
+    else if(b.hasAttribute('data-file')) call('pickFiles');
+    else if(b.hasAttribute('data-undo')) doUndo();
+    else if(b.hasAttribute('data-redo')) doRedo();
+    else if(b.id==='readAgain' && openId) call('play',openId,0);
+  });
+  $('toastBtn').addEventListener('click',function(){ $('toast').hidden=true; var a=toastAct; toastAct=null; if(a) a(); });
+  $('clipAdd').addEventListener('click',doPaste);
+  $('clipX').addEventListener('click',function(){ P.clipSeen=$('clipBar').getAttribute('data-k')||''; savePrefs(); $('clipBar').hidden=true; });
+  $('clipOpt').addEventListener('click',function(){ P.clipBar=P.clipBar===false; savePrefs(); renderSettings(); checkClip(); });
 
   window.onNative=function(s){ if(s){ S=s; render(); } };
   window.onBack=function(){
@@ -385,7 +485,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   $('readerView').addEventListener('click',function(e){
     var s=e.target.closest('.seg'); if(!s||!openId) return;
     if(lpFired){ lpFired=false; return; }
-    call('play',openId,parseInt(s.getAttribute('data-i'),10));
+    call('jump',openId,parseInt(s.getAttribute('data-i'),10),true);
   });
   /* following the sentence being read is a switch the reader controls */
   $('jump').addEventListener('click',function(){ setFollow(!followOn); });
@@ -404,6 +504,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   $('readerView').addEventListener('touchcancel',lpClear);
   $('readerView').addEventListener('contextmenu',function(e){ e.preventDefault(); });
   $('openMarks').addEventListener('click',function(){
+    $('setScrim').hidden=true;
     var it=item(openId), box=$('marksList'); box.textContent='';
     ((it&&it.marks)||[]).forEach(function(k){
       if(!segs[k]) return;
@@ -423,7 +524,6 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   });
 
   /* files, sleep timer, language, cleaning, pronunciation */
-  $('fileBtn').addEventListener('click',function(){ call('pickFiles'); });
   $('optSleep').addEventListener('click',function(e){ var b=e.target.closest('[data-v]'); if(!b) return; S.sleepMode=b.getAttribute('data-v'); S.sleepLeft=parseInt(S.sleepMode,10)||0; call('setSleep',S.sleepMode); renderSettings(); renderPlayer(); });
   $('autoLang').addEventListener('click',function(){ S.autoLang=!S.autoLang; call('setAutoLang',S.autoLang); renderSettings(); });
   $('cleanMd').addEventListener('click',function(){
@@ -462,7 +562,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     bar.addEventListener('pointerdown',function(e){ if(!shownItem()) return; drag=frac(e); bar.classList.add('drag'); try{ bar.setPointerCapture(e.pointerId); }catch(x){} show(drag); });
     bar.addEventListener('pointermove',function(e){ if(drag===null) return; drag=frac(e); show(drag); });
     function end(commit){ if(drag===null) return; var f=drag, it=shownItem(); drag=null; bar.classList.remove('drag');
-      if(commit && it && it.count){ lastOn=-1; call('seek',it.id,Math.round(f*(it.count-1))); if(view==='reader') setTimeout(function(){ markReader(true); jumpToCurrent(); },150); }
+      if(commit && it && it.count){ lastOn=-1; call('jump',it.id,Math.round(f*(it.count-1)),false); if(view==='reader') setTimeout(function(){ markReader(true); jumpToCurrent(); },150); }
       renderPlayer(); }
     bar.addEventListener('pointerup',function(){ end(true); });
     bar.addEventListener('pointercancel',function(){ end(false); });
@@ -503,9 +603,8 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   $('addPaste').addEventListener('click',function(){ var t=call('readClipboard')||''; if(t){ var a=$('addText'); a.value = a.value ? a.value+'\n\n'+t : t; countAdd(); } });
   $('addSave').addEventListener('click',function(){
     var text=$('addText').value; if(!text.trim()) return;
-    call('addItem',$('addTitle').value,text);
-    $('addView').hidden=true; lastKey='';
-    S=parse(call('getState')||'null',S)||S; render();
+    var r=parse(call('addItem',$('addTitle').value,text)||'{}',{});
+    $('addView').hidden=true; afterAdd(r);
   });
 
   /* init */
@@ -514,6 +613,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   followOn = P.follow!==false;
   var s0=parse(call('getState')||'null',null); if(s0) S=s0;
   render();
+  checkClip();
 })();
 </script>
 </body>
