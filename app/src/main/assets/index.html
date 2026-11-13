@@ -71,6 +71,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .seek .thumb{position:absolute;left:0;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:8px;background:var(--accent)}
 .seek.drag .thumb{width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:11px}
 .jump{position:absolute;right:16px;top:-54px;height:44px;padding:0 16px;border-radius:22px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.jump.off{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .player .ctl{display:flex;align-items:center;justify-content:space-between}
 .pill{min-width:64px;height:44px;padding:0 10px;border:1px solid var(--line);border-radius:12px;font-size:14px;font-weight:600;background:var(--surface)}
 .mid{display:flex;align-items:center;gap:12px}
@@ -136,7 +137,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
 
 <div class="player">
   <div class="info"><b id="pTitle">Chưa có bài</b><span id="pLeft"></span></div>
-  <button class="jump" id="jump" hidden>Về chỗ đang đọc</button>
+  <button class="jump" id="jump" hidden>Bám theo: Bật</button>
   <div class="seek" id="seek" role="slider" aria-label="Vị trí trong bài" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="track"><i id="pFill"></i></div><div class="thumb" id="pThumb"></div></div>
   <div class="ctl">
     <button class="pill" id="rateBtn" aria-label="Tốc độ">1.0x</button>
@@ -160,6 +161,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     <div class="hr"></div>
     <div class="row"><div class="rowlab">Tốc độ đọc</div><div class="step"><button id="rateDown" aria-label="Chậm hơn">−</button><span id="rateVal">1.0x</span><button id="rateUp" aria-label="Nhanh hơn">+</button></div></div>
     <div class="row"><label class="rowlab" for="voiceSel">Giọng</label><select id="voiceSel"></select></div>
+    <div class="row"><div class="rowlab">Bám theo câu đang đọc</div><button class="toggle" id="followOpt" role="switch" aria-checked="true" aria-label="Bám theo câu đang đọc"><i></i></button></div>
     <div class="row"><div class="rowlab">Giữ màn hình sáng khi đọc</div><button class="toggle" id="keepOn" role="switch" aria-checked="false" aria-label="Giữ màn hình sáng khi đọc"><i></i></button></div>
     <div class="hr"></div>
     <div><div class="lab" id="sleepLab">Hẹn giờ tắt</div><div class="seg3" id="optSleep"><button data-v="off">Tắt</button><button data-v="15">15p</button><button data-v="30">30p</button><button data-v="60">60p</button><button data-v="end">Hết bài</button></div></div>
@@ -211,7 +213,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     gray:['#44504d','#ffffff','#b8c2c0','#141a19','Xám']
   };
   var S = {items:[],currentId:null,index:0,playing:false,rate:1,voice:'',voices:[],viMissing:false,systemDark:false,sleepMode:'off',sleepLeft:0,autoLang:true,clean:true,repl:[]};
-  var P = {theme:'system',accent:'blue',font:'serif',size:19,lh:'1.75',keepOn:false};
+  var P = {theme:'system',accent:'blue',font:'serif',size:19,lh:'1.75',keepOn:false,follow:true};
   var view='queue', openId=null, segs=[], spans=[], lastOn=-1, lastKey='', followOn=true, drag=null, marks={}, lastMk=null, lpTimer=null, lpFired=false;
 
   function call(name){ if(!N||!N[name]) return null; try{ return N[name].apply(N, Array.prototype.slice.call(arguments,1)); }catch(e){ return null; } }
@@ -239,6 +241,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     $('sizeVal').textContent=P.size;
     $('rateVal').textContent=S.rate.toFixed(1)+'x';
     $('keepOn').classList.toggle('on',!!P.keepOn); $('keepOn').setAttribute('aria-checked',P.keepOn?'true':'false');
+    $('followOpt').classList.toggle('on',!!followOn); $('followOpt').setAttribute('aria-checked',followOn?'true':'false');
     pick('optSleep',S.sleepMode||'off');
     var num=/^\d+$/.test(S.sleepMode||'');
     $('sleepLab').textContent='Hẹn giờ tắt'+(num?' · còn '+S.sleepLeft+' phút':'');
@@ -290,7 +293,9 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     $('icPlay').style.display=showPause?'none':''; $('icPause').style.display=showPause?'':'none';
     $('play').setAttribute('aria-label',showPause?'Dừng':'Đọc');
     $('rateBtn').textContent=S.rate.toFixed(1)+'x';
-    $('jump').hidden = !(view==='reader' && isCur && !followOn);
+    $('jump').hidden = view!=='reader';
+    $('jump').textContent = followOn ? 'Bám theo: Bật' : 'Bám theo: Tắt';
+    $('jump').classList.toggle('off', !followOn);
     if(!shown){ $('pTitle').textContent='Chưa có bài'; $('pLeft').textContent=''; setBar(0); return; }
     var pos=isCur?S.index:shown.pos, frac=shown.count>1?pos/(shown.count-1):0;
     $('pTitle').textContent=shown.title;
@@ -305,8 +310,12 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
 
   function setBar(f){ var pc=(Math.max(0,Math.min(1,f))*100).toFixed(1)+'%'; $('pFill').style.width=pc; $('pThumb').style.left=pc; $('seek').setAttribute('aria-valuenow',Math.round(f*100)); }
   function shownItem(){ return (view==='reader' && openId) ? item(openId) : item(S.currentId); }
+  function setFollow(on){
+    followOn=!!on; P.follow=followOn; savePrefs();
+    renderPlayer(); if(!$('setScrim').hidden) renderSettings();
+    if(followOn && view==='reader' && openId===S.currentId) jumpToCurrent();
+  }
   function jumpToCurrent(){
-    followOn=true; $('jump').hidden=true;
     var el=spans[lastOn]; if(!el) return;
     var box=$('main'), r=el.getBoundingClientRect(), b=box.getBoundingClientRect();
     box.scrollTop += r.top-b.top-(b.height*0.3);
@@ -339,7 +348,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     });
     rv.appendChild(frag);
     $('queueView').hidden=true; rv.hidden=false; $('topQueue').hidden=true; $('topReader').hidden=false;
-    $('main').scrollTop=0; followOn=true;
+    $('main').scrollTop=0;
     renderPlayer(); markReader(true);
   }
   function closeReader(){
@@ -376,12 +385,11 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   $('readerView').addEventListener('click',function(e){
     var s=e.target.closest('.seg'); if(!s||!openId) return;
     if(lpFired){ lpFired=false; return; }
-    followOn=true;
     call('play',openId,parseInt(s.getAttribute('data-i'),10));
   });
-  /* scrolling by hand stops the page from chasing the sentence being read */
-  $('main').addEventListener('touchmove',function(){ if(view==='reader' && followOn){ followOn=false; renderPlayer(); } },{passive:true});
-  $('jump').addEventListener('click',jumpToCurrent);
+  /* following the sentence being read is a switch the reader controls */
+  $('jump').addEventListener('click',function(){ setFollow(!followOn); });
+  $('followOpt').addEventListener('click',function(){ setFollow(!followOn); });
 
   /* hold a sentence to bookmark it */
   function lpClear(){ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } }
@@ -410,7 +418,6 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   $('marksList').addEventListener('click',function(e){
     var b=e.target.closest('[data-k]'); if(!b) return;
     var el=spans[parseInt(b.getAttribute('data-k'),10)]; $('marksScrim').hidden=true; if(!el) return;
-    followOn=false; renderPlayer();
     var box=$('main'), r=el.getBoundingClientRect(), bb=box.getBoundingClientRect();
     box.scrollTop += r.top-bb.top-(bb.height*0.3);
   });
@@ -455,7 +462,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
     bar.addEventListener('pointerdown',function(e){ if(!shownItem()) return; drag=frac(e); bar.classList.add('drag'); try{ bar.setPointerCapture(e.pointerId); }catch(x){} show(drag); });
     bar.addEventListener('pointermove',function(e){ if(drag===null) return; drag=frac(e); show(drag); });
     function end(commit){ if(drag===null) return; var f=drag, it=shownItem(); drag=null; bar.classList.remove('drag');
-      if(commit && it && it.count){ followOn=true; lastOn=-1; call('seek',it.id,Math.round(f*(it.count-1))); if(view==='reader') setTimeout(function(){ markReader(true); jumpToCurrent(); },150); }
+      if(commit && it && it.count){ lastOn=-1; call('seek',it.id,Math.round(f*(it.count-1))); if(view==='reader') setTimeout(function(){ markReader(true); jumpToCurrent(); },150); }
       renderPlayer(); }
     bar.addEventListener('pointerup',function(){ end(true); });
     bar.addEventListener('pointercancel',function(){ end(false); });
@@ -504,6 +511,7 @@ select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid 
   /* init */
   P=Object.assign(P,parse(call('getPrefs')||'{}',{}));
   P.size=parseInt(P.size,10)||19;
+  followOn = P.follow!==false;
   var s0=parse(call('getState')||'null',null); if(s0) S=s0;
   render();
 })();
